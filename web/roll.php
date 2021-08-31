@@ -36,7 +36,7 @@ for ($i = 0; $i < $digitNb; $i++) {
 $randomNumber = (int) $resStr;
 $res = $counter->push($randomNumber);
 $resObj = json_decode($res);
-//var_dump($resObj); die();
+var_dump($resObj); die();
 if (property_exists($resObj, 'number')) {
     //  var_dump("in response");
     Counter::jsonResponse($resObj->number);

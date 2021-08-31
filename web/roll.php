@@ -13,7 +13,7 @@ if (isset($_GET['cId'])) {
 }
 $token = "97cbc24fe27233cd746ffb09a45f3754";
 if (isset($_GET['cT'])) {
-    $mac = $_GET['cT'];
+    $token = $_GET['cT'];
 }
 $counter = new Counter($mac, $token);
 $digitNb = 7;
@@ -36,7 +36,7 @@ for ($i = 0; $i < $digitNb; $i++) {
 $randomNumber = (int) $resStr;
 $res = $counter->push($randomNumber);
 $resObj = json_decode($res);
-var_dump($_GET, $resObj); die();
+//var_dump($_GET, $resObj); die();
 if (property_exists($resObj, 'number')) {
     //  var_dump("in response");
     Counter::jsonResponse($resObj->number);

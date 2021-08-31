@@ -3,7 +3,7 @@
 // Require the Composer autoloader.
 require '../vendor/autoload.php';
 
-use Smiirl\Counter;
+#use Smiirl\Counter;
 
 // set the real values from https://my.smiirl.com
 $mac = "e08e3c39c9b4";

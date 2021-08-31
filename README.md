@@ -14,22 +14,10 @@ Use the button "Reveal Result" to show won points:
 - Each well placed number earns 100 points.
 - Each well placed number (in addition to a first one) multiplies the score of the round by 2.
 
-# Choose deployment 
+# Access the Interface and setup your parameters
 
-You can use an already deployed app or install it locally.
+Go to https://frozen-brook-19736.herokuapp.com/index.html.
 
-## Use a hosted deployment
-
-- Go to https://frozen-brook-19736.herokuapp.com/index.html.
-
-## Install it in your infrastructure
-- ```
-  composer install
-  ```
-- Make shure that `roll.php` is executable.
-- Use `index.html` to show the interface.
- 
-# Setup your parameters
 First Choose 
 - the number of players, 
 - the size X (number of digits) of your counter, 

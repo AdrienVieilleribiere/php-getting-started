@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smiirl Dice</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <style>
+
+        @font-face {
+            font-family: 'AVA';
+            src: url('https://www.smiirl.com/smiirl/fonts/AVA-Medium.eot');
+            src: url('https://www.smiirl.com/smiirl/fonts/AVA-Medium.eot?#iefix') format('embedded-opentype'),
+            url('https://www.smiirl.com/smiirl/fonts/AVA-Medium.woff2') format('woff2'),
+            url('https://www.smiirl.com/smiirl/fonts/AVA-Medium.woff') format('woff'),
+            url('https://www.smiirl.com/smiirl/fonts/AVA-Medium.ttf') format('truetype'),
+            url('https://www.smiirl.com/smiirl/fonts/AVA-Medium.svg#AVA-Medium') format('svg');
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        body {
+            font-family: AVA
+        }
+
+        .goodDigit {
+            background: green;
+        }
+
+        .goodNumber {
+            background: orange;
+        }
+
+        .bad {
+            background: none;
+        }
+
+        .hiddenResult {
+            background: none !important;
+        }
+    </style>
+
+</head>
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script type="text/javascript">
+  function rollTheDice() {
+    let prefixUrl = "http://localhost:9000/";
+    let suffixUrl = "?counterSize=" + $('#counterSize').val()
+      + '&minDigit=' + $('#minDigit').val()
+      + '&maxDigit='+ $('#maxDigit').val()
+      + '&cId='+ $('#cId').val()
+    ;
+    $.ajax({
+      type: "post",
+      url: prefixUrl + "roll.php" + suffixUrl,
+      cache: false,
+      success: function (jsonResponse) {
+        if (jsonResponse.number) {
+          playersNb = $('#playersSize').val();
+          counterSize = $('#counterSize').val();
+          responseStr = jsonResponse.number.toString();
+          if (responseStr.length > counterSize) {
+            responseStr = responseStr.substr(responseStr.length - counterSize);
+          }
+          //console.log("roll:" + responseStr);
+          $("#counterResult").attr("data-number", responseStr);
+          $("#counterResult").html("Reset (" + responseStr + ")");
+          $('#counterResult').hide();
+          $('#counterResultMissing').hide();
+          $('#counterResultHidden').show();
+          $('#counterResultAction').attr('data-step', 'hidden');
+          return false;
+        }
+      }
+    });
+    return false;
+  };
+
+  function preparePlayers() {
+    let playersNb = $('#playersSize').val();
+    let counterSize = $('#counterSize').val();
+    let playersContainer = document.getElementById("players");
+    playersContainer.innerHTML = '';
+    minDigitNumber = $('#minDigit').val();
+    maxDigitNumber = $('#maxDigit').val();
+    for (let player = 1; player <= playersNb; player++) {
+      playerDiv = document.createElement("div");
+      playerDiv.setAttribute('class', 'col player');
+      playerDiv.setAttribute('id', 'player' + player);
+      playerDiv.setAttribute('data-id', player);
+      playerDivTitle = document.createElement("h3");
+      playerDivTitleInput = document.createElement("input");
+      playerDivTitleInput.setAttribute('class', 'h3 form-control');
+      playerDivTitleInput.setAttribute('type', 'text');
+      playerDivTitleInput.setAttribute('value', "Player " + player);
+      //playerDivTitle.append(document.createTextNode("Player " + player));
+      playerDivTitle.append(playerDivTitleInput);
+      playerDiv.append(playerDivTitle);
+      playerDiv.append(document.createElement("hr"));
+      for (let digit = 1; digit <= counterSize; digit++) {
+        playerSelect = document.createElement("select");
+        playerSelect.setAttribute('id', 'd' + player + '_' + digit);
+        playerSelect.setAttribute('name', 'd' + player + '_' + digit);
+        playerSelect.setAttribute('class', 'd');
+        for (let option = minDigitNumber; option <= maxDigitNumber; option++) {
+          playerOption = document.createElement("option");
+          playerOption.setAttribute('value', option);
+          playerOption.append(document.createTextNode(option));
+          playerSelect.append(playerOption);
+        }
+        /*playerOption = document.createElement("option");
+        playerOption.setAttribute('value', '');
+        playerSelect.append(playerOption);
+        */
+        playerDiv.append(playerSelect);
+      }
+      payerScores = document.createElement("div")
+      payerScores.setAttribute('class', 'scores');
+      payerScores.append(document.createElement("hr"));
+      currentRes = document.createElement("p");
+      currentRes.append(document.createTextNode('Last Roll: '));
+      currentResValue = document.createElement("span");
+      currentResValue.setAttribute('id', 'lp' + player);
+      currentResValue.setAttribute('class', 'score');
+      currentResValue.append(document.createTextNode('0'));
+      currentRes.append(currentResValue);
+      payerScores.append(currentRes);
+      currentRes = document.createElement("p");
+      currentRes.append(document.createTextNode('Total: '));
+      currentResValue = document.createElement("span");
+      currentResValue.setAttribute('id', 'tp' + player);
+      currentResValue.append(document.createTextNode('0'));
+      currentRes.append(currentResValue);
+      payerScores.append(currentRes);
+
+      playerDiv.append(payerScores);
+      playersContainer.append(playerDiv);
+    }
+    return false;
+  }
+
+  function getReward(fromString, toString, distance) {
+    multiplier = 1
+    wonPoints = 0;
+    counterSize = $('#counterSize').val();
+    for (let digit = 0; digit < counterSize; digit++) {
+      var digitFrom = '';
+      var digitTo = '';
+      if (fromString.charAt(digit) !== '') {
+        digitFrom = fromString.charAt(digit);
+      }
+      if (toString.charAt(digit) !== '') {
+        digitTo = toString.charAt(digit);
+      }
+      switch (distance) {
+        case 'digitModuloDistance':
+          digitDistance = getDigitDistance(digitFrom, digitTo, distance);
+          wonPoints = wonPoints + Math.round(42 / (1 + digitDistance));
+          if (digitDistance == 0) {
+            multiplier = multiplier * 2;
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    switch (distance) {
+      case 'digitModuloDistance':
+        break;
+      default:
+        goodDigits = getGoodPositions(userBet, currentResult);
+        goodNumbers = getGoodNumbers(userBet, currentResult);
+        wonPoints = wonPoints + (100 * goodDigits.length) + (10 * (goodNumbers.length - goodDigits.length));
+        multiplier = Math.max(1, Math.pow(2, (goodDigits.length - 1)));
+        break;
+    }
+    return wonPoints * multiplier;
+  }
+
+  function getDigitDistance(digitFrom, digitTo, distance) {
+    resDistance = 1;
+    digitFromNum = parseInt(digitFrom);
+    if (digitFrom == '' || digitFrom == ' ') {
+      digitFromNum = 10
+    }
+    digitToNum = parseInt(digitTo);
+    if (digitTo == '' || digitTo == ' ') {
+      digitToNum = 10
+    }
+    switch (distance) {
+      case 'weighted':
+        resDistance = Math.abs(digitFromNum - digitToNum) % 11
+        break;
+      case '':
+      case 'kronecker':
+      default:
+        resDistance = (digitFromNum == digitToNum) ? 0 : 1;
+        break;
+    }
+    return resDistance;
+  }
+
+
+  function computeResult(distance) {
+    currentResult = $("#counterResult").attr("data-number");
+    let playersNb = $('#playersSize').val();
+    let counterSize = $('#counterSize').val();
+    for (var player = 1; player <= playersNb; player++) {
+      userBet = '';
+      for (let digit = 1; digit <= counterSize; digit++) {
+        if ($('#d' + player + '_' + digit).val() || $('#d' + player + '_' + digit).val() === 0) {
+          userBet = userBet + $('#d' + player + '_' + digit).val();
+        } else {
+          userBet = userBet + ' ';
+        }
+      }
+      betValue = getReward(userBet, currentResult, distance);
+      goodDigits = getGoodPositions(userBet, currentResult);
+      goodNumbers = getGoodNumbers(userBet, currentResult);
+      $('#lp' + player).html(betValue);
+      $('#tp' + player).html(parseInt($('#tp' + player).text()) + betValue);
+      addBetClasses(player, goodDigits, goodNumbers, "goodDigit", "goodNumber", "bad", "hiddenResult");
+    }
+    return false;
+  }
+
+  function getGoodPositions(fromString, toString) {
+    counterSize = $('#counterSize').val();
+    res = [];
+    for (let digit = 0; digit < counterSize; digit++) {
+      var digitFrom = '';
+      var digitTo = '';
+      if (fromString.charAt(digit) !== '') {
+        digitFrom = fromString.charAt(digit);
+      }
+      if (toString.charAt(digit) !== '') {
+        digitTo = toString.charAt(digit);
+      }
+      digitDistance = getDigitDistance(digitFrom, digitTo, '');
+      if (digitDistance == 0) {
+        res.push(digit);
+      }
+    }
+    return res;
+  }
+
+  function getGoodNumbers(fromString, toString) {
+    counterSize = $('#counterSize').val();
+    res = [];
+    for (let digit = 0; digit < counterSize; digit++) {
+      for (let digit2 = 0; digit2 < counterSize; digit2++) {
+        //if (digit !== digit2) {
+        if (getDigitDistance(fromString.charAt(digit), toString.charAt(digit2), '') == 0) {
+          res.push(digit);
+          break;
+        }
+        //}
+      }
+    }
+    return res;
+  }
+
+  function addBetClasses(player, goodDigits, goodNumbers, goodDigitClass, goodNumberClass, badClass, tmpClass) {
+    counterSize = $('#counterSize').val();
+    for (let digit = 0; digit < counterSize; digit++) {
+      selectId = 'd' + player + '_' + (digit + 1);
+      if (tmpClass.length) {
+        $('#' + selectId).addClass(tmpClass);
+      }
+      if (goodDigits.indexOf(digit) !== -1) {
+        $('#' + selectId).removeClass(badClass);
+        $('#' + selectId).removeClass(goodNumberClass);
+        $('#' + selectId).addClass(goodDigitClass);
+      } else if (goodNumbers.indexOf(digit) !== -1) {
+        $('#' + selectId).removeClass(badClass);
+        $('#' + selectId).removeClass(goodDigitClass);
+        $('#' + selectId).addClass(goodNumberClass);
+      } else {
+        $('#' + selectId).removeClass(badClass);
+        $('#' + selectId).removeClass(goodDigitClass);
+        $('#' + selectId).removeClass(goodNumberClass);
+      }
+    }
+    return false;
+  }
+
+  function removeBetClasses(goodDigitClass, goodNumberClass, badClass, tmpClass) {
+    $('.d').removeClass(goodDigitClass);
+    $('.d').removeClass(goodNumberClass);
+    $('.d').removeClass(badClass);
+    $('.d').removeClass(tmpClass);
+    return false;
+  }
+
+
+</script>
+<br/>
+<div class="container">
+    <h1 class="display-4 text-center">Smiirl Slot Machine</h1>
+    <br/>
+    <div class="container-fluid">
+        <form class="form-control text-center">
+            <div class="row">
+                <div class="col">
+                    <label for="playersSize">Number of Players</label>
+                    <input type="number" min="1" step="1"
+                           name="playersSize" id="playersSize"
+                           value="1"
+                           class="form-control"
+                           onchange="preparePlayers()"/>
+                </div>
+                <div class="col">
+                    <label for="counterSize">Size of the counter</label>
+                    <select name="counterSize" id="counterSize"
+                            class="form-control"
+                            onchange="preparePlayers()">
+                        <option value="5">5</option>
+                        <option value="7">7</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label for="minDigit">Minimal Digit</label>
+                    <select name="minDigit" id="minDigit"
+                            class="form-control"
+                            onchange="preparePlayers()">
+                        <option value="0" selected="selected">0</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label for="maxDigit">Maximal Digit</label>
+                    <select name="maxDigit" id="maxDigit"
+                            class="form-control"
+                            onchange="preparePlayers()">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="6" selected="selected">6</option>
+                        <option value="9">9</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label for="cId">Counter Id</label>
+                    <input id="cId"
+                           name="cId"
+                           type="text"
+                           value="e08e3c39c9b4"
+                           title="Find it in https://my.smiirl.com"
+                           class="form-control"
+                    />
+                </div>
+                <div class="col">
+                    <label for="cT">Counter Token</label>
+                    <input id="cT"
+                           name="cT"
+                           type="text"
+                           value="97cbc24fe27233cd746ffb09a45f3754"
+                           title="Find it in https://my.smiirl.com"
+                           class="form-control"
+                    />
+                </div>
+            </div>
+            <br/>
+            <br/>
+            <div class="container">
+                <div id="players" class="row">
+                </div>
+            </div>
+            <br/><br/>
+            <button type="button"
+                    id="counterResultAction"
+                    data-step="empty"
+                    class="btn btn-lg btn-block btn-dark"
+            >
+                <span id="counterResultMissing">Roll the dice</span>
+                <span id="counterResultHidden">Reveal Result</span>
+                <span id="counterResult">Reset</span>
+            </button>
+            <br/><br/>
+        </form>
+        <br/>
+        <br/>
+    </div>
+</div>
+<script type="text/javascript">
+  (function () {
+    preparePlayers();
+    $('#counterResult').hide();
+    $('#counterResultHidden').hide();
+    $('#counterResultAction').on("click", function () {
+      currentStep = $('#counterResultAction').attr("data-step");
+      switch (currentStep) {
+        case 'empty':
+          rollTheDice()
+          $('#counterResult').hide();
+          $('#counterResultMissing').show();
+          $('#counterResultHidden').hide();
+          $('#counterResultAction').addClass("btn-primary");
+          $('#counterResultAction').removeClass("btn-dark");
+          break;
+        case 'hidden':
+          $('#counterResult').show();
+          $('#counterResultMissing').hide();
+          $('#counterResultHidden').hide();
+          $('#counterResultAction').attr("data-step", "shown");
+          $('#counterResultAction').removeClass("btn-primary");
+          $('#counterResultAction').addClass("btn-dark");
+          computeResult('');
+          $('.score').show();
+          $('.d').removeClass("hiddenResult");
+          break;
+        case 'shown':
+          $('#counterResult').hide();
+          $('#counterResultMissing').show();
+          $('#counterResultHidden').hide();
+          $('#counterResultAction').attr("data-step", "empty");
+          removeBetClasses("goodDigit", "goodNumber", "bad", "hiddenResult");
+          $('.score').hide();
+          $('#counterResultAction').removeClass("btn-primary");
+          $('#counterResultAction').addClass("btn-dark");
+          break;
+        default:
+        //console.log("bad boy, why are you here");
+      }
+      return false;
+    });
+  })();
+</script>
+</body>
+</html>
